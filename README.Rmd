@@ -14,11 +14,7 @@ library(tidyverse)
 Follow the instructions posted at <https://ds202-at-isu.github.io/labs.html> for the lab assignment. The work is meant to be finished during the lab time, but you have time until Monday (after Thanksgiving) to polish things.
 
 All submissions to the github repo will be automatically uploaded for grading once the due date is passed. Submit a link to your repository on Canvas (only one submission per team) to signal to the instructors that you are done with your submission.
-
-# Lab 4: Scraping (into) the Hall of Fame
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 hof <- Lahman::HallOfFame
 hof %>% 
   ggplot(aes(x = yearID, y = votes/needed*100, group=playerID)) +
@@ -28,4 +24,124 @@ hof %>%
     data = hof %>% filter(inducted=="Y")) +
   xlim(c(2000, 2022)) +
   ylab("Percent of votes")
+```
+
+# Lab 4: Scraping (into) the Hall of Fame
+1: **Finding a suitable website**
+
+*When searching I immedietly when to the sorce being the hall of fame website, but with no clear table, it was hard to scrape exactly what was needed out of the data, so I settled on the wikipedia page for the MLB hall of fame, specifically the 3rd table on their page*
+
+2: **The Scarper**
+```{r}
+library(rvest)
+library(dplyr)
+library(Lahman)
+
+# URL of the webpage containing the Hall of Fame table
+url <- "https://en.wikipedia.org/wiki/List_of_members_of_the_Baseball_Hall_of_Fame"
+
+# Read the HTML content from the webpage
+page <- read_html(url)
+
+# Extract table data
+table_data <- page %>%
+  html_nodes(xpath = '//*[@id="mw-content-text"]/div[1]/table[3]') %>%
+  html_table()
+
+
+# Check if table_data is not empty and contains the desired table
+if (length(table_data) > 0)
+  # Assuming the desired table is the first one (index 1)
+  hall <- table_data[[1]]
+  
+  colnames(hall) <- trimws(colnames(hall))
+  
+  print(hall)
+```
+*the written scraper minimizes the amount of risk of a faulty table and makes cleaner titles for the data.*
+*then I realized the data was provided to us, not searched out as the instructions implied*
+2.5:**cleaning data to the HOF Level**
+```{r}
+(HallOfFame)
+```
+
+
+```{r}
+#data scraper
+url <- "https://www.baseball-reference.com/awards/hof_2023.shtml"
+
+page <- read_html(url)
+
+
+table_data <- page %>%
+  html_nodes("table") %>%
+  html_table(fill = TRUE)  
+
+# Check table
+if (length(table_data) > 0)
+  hall_of_fame_df <- table_data[[1]]  # Assuming the desired table is the first one (index 1)
+
+
+  # Set the first row as column names
+  colnames(hall_of_fame_df) <- make.unique(trimws(unlist(hall_of_fame_df[1, ])))
+
+  # Remove the first row (since it's now the column headers)
+  hall_of_fame_df <- hall_of_fame_df[-1, ]
+  
+  #remove unneeded collumns for question 
+  hall_of_fame_df <- hall_of_fame_df %>%
+    select(-9:-39)
+  remove <- c("YoB", "%vote","HOFm","HOFs","Yrs","Rk")
+hall_of_fame_df <- hall_of_fame_df %>%
+  select(-one_of(remove))
+
+  # Clean up 'Name' column by replacing "X-" with an empty string
+  hall_of_fame_df$Name <- gsub("X-", "", hall_of_fame_df$Name)
+
+  # Add new columns 'ballots' and 'needed'and "inducted" with specific values
+  hall_of_fame_df <- hall_of_fame_df %>%
+    mutate(ballots = 389, needed = 292, yearID = 2023)
+  
+  hall_of_fame_df$Votes <- as.numeric(hall_of_fame_df$Votes)
+  hall_of_fame_df <- hall_of_fame_df %>%
+  mutate(inducted = ifelse(needed > Votes, "N", "Y"))
+  hall_of_fame_df$inducted <- as.factor(hall_of_fame_df$inducted)
+  hall_of_fame_df$yearID <- as.integer(hall_of_fame_df$yearID)
+
+  # Print the updated data frame
+print(hall_of_fame_df)
+
+```
+3:**Appending the dataset to the Lahman one**
+```{r}
+name_mapping <- c(
+  "Name" = "playerID", "Votes" = "votes")
+
+# Rename columns in hall_of_fame_df to match HallOfFame dataset
+hall_of_fame_df <- rename_at(hall_of_fame_df, vars(names(name_mapping)), ~ name_mapping[.])
+
+# Verify updated column names in hall_of_fame_df
+print(hall_of_fame_df)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+combined_hof_data <- bind_rows(HallOfFame, hall_of_fame_df)
+
+# Print the combined dataset
+head(combined_hof_data)
+```
+```{r}
+library(ggplot2)
+
+ggplot(combined_hof_data, aes(x = yearID, fill = inducted)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c("green", "red"), labels = c("Inducted", "Not Inducted")) +  # Define colors and labels
+  labs(
+    title = "Hall of Fame Induction Status Over Years",
+    x = "Year",
+    y = "Player Count",
+    fill = "Induction Status"
+  ) +
+  theme_minimal()
 ```
