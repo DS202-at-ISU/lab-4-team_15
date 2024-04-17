@@ -62,7 +62,7 @@ if (length(table_data) > 0)
 *then I realized the data was provided to us, not searched out as the instructions implied*
 2.5:**cleaning data to the HOF Level**
 ```{r}
-(HallOfFame)
+head(HallOfFame)
 ```
 
 
@@ -88,7 +88,7 @@ if (length(table_data) > 0)
   # Remove the first row (since it's now the column headers)
   hall_of_fame_df <- hall_of_fame_df[-1, ]
   
-  #remove unneeded collumns for question 
+  #remove unneeded columns for question 
   hall_of_fame_df <- hall_of_fame_df %>%
     select(-9:-39)
   remove <- c("YoB", "%vote","HOFm","HOFs","Yrs","Rk")
@@ -98,18 +98,17 @@ hall_of_fame_df <- hall_of_fame_df %>%
   # Clean up 'Name' column by replacing "X-" with an empty string
   hall_of_fame_df$Name <- gsub("X-", "", hall_of_fame_df$Name)
 
-  # Add new columns 'ballots' and 'needed'and "inducted" with specific values
+  # Add new columns 'ballots' and 'needed', 'yearID' and 'inducted' with specific values
   hall_of_fame_df <- hall_of_fame_df %>%
     mutate(ballots = 389, needed = 292, yearID = 2023)
-  
-  hall_of_fame_df$Votes <- as.numeric(hall_of_fame_df$Votes)
   hall_of_fame_df <- hall_of_fame_df %>%
-  mutate(inducted = ifelse(needed > Votes, "N", "Y"))
+    mutate(inducted = ifelse(needed > Votes, "N", "Y"))
+  hall_of_fame_df$Votes <- as.numeric(hall_of_fame_df$Votes)
   hall_of_fame_df$inducted <- as.factor(hall_of_fame_df$inducted)
   hall_of_fame_df$yearID <- as.integer(hall_of_fame_df$yearID)
 
   # Print the updated data frame
-print(hall_of_fame_df)
+  head(hall_of_fame_df)
 
 ```
 3:**Appending the dataset to the Lahman one**
@@ -120,8 +119,7 @@ name_mapping <- c(
 # Rename columns in hall_of_fame_df to match HallOfFame dataset
 hall_of_fame_df <- rename_at(hall_of_fame_df, vars(names(name_mapping)), ~ name_mapping[.])
 
-# Verify updated column names in hall_of_fame_df
-print(hall_of_fame_df)
+head(hall_of_fame_df)
 ```
 
 
@@ -136,7 +134,7 @@ library(ggplot2)
 
 ggplot(combined_hof_data, aes(x = yearID, fill = inducted)) +
   geom_bar(position = "stack") +
-  scale_fill_manual(values = c("green", "red"), labels = c("Inducted", "Not Inducted")) +  # Define colors and labels
+  scale_fill_manual(values = c("green", "red"), labels = c("Inducted", "Not Inducted")) +
   labs(
     title = "Hall of Fame Induction Status Over Years",
     x = "Year",
