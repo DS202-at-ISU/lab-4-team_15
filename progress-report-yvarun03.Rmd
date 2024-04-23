@@ -1,11 +1,112 @@
 ---
 title: "Progress Report"
-author: "Heike Hofmann"
-date: "2022-11-17"
+author: "Varun Yeduru"
+date: "04/22/2024"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load necessary libraries
+library(rvest)
+library(dplyr)
+library(Lahman)
+
+# Specify the URL for the 2023 Hall of Fame data
+url <- "https://www.baseball-reference.com/awards/hof_2023.shtml"
+
+# Retrieve and parse the HTML from the URL
+web_data <- read_html(url)
+
+# Isolate the table with Hall of Fame voting results
+voting_data_table <- web_data %>% html_table(fill = TRUE)
+
+# Extract the first table as it contains our data
+hof_voting_data <- voting_data_table[[1]]
+
+# Display the structure of the data we extracted
+str(hof_voting_data)
+
+# Use Lahman for comparison purposes
+head(HallOfFame, 5)
+
+
+
+```
+```{r}
+# Load essential packages
+library(rvest)
+library(dplyr)
+library(Lahman)
+
+# Define the URL for the 2023 Hall of Fame data
+url <- "https://www.baseball-reference.com/awards/hof_2023.shtml"
+
+# Fetch and parse the HTML content from the webpage
+web_content <- read_html(url)
+
+# Extract the voting data table
+data_table <- web_content %>% html_table(fill = TRUE)
+
+# Select the table presumed to contain Hall of Fame data
+voting_results_2023 <- data_table[[1]]
+
+# Standardize column names to align with the Lahman database's structure
+colnames(voting_results_2023) <- c("playerID", "yearID", "votedBy", "ballots", "needed", "votes", "inducted", "category", "additionalNotes")
+
+# Display unique values to identify non-numeric entries
+unique(voting_results_2023$yearID)
+unique(voting_results_2023$ballots)
+unique(voting_results_2023$needed)
+unique(voting_results_2023$votes)
+
+# Modify data types for proper analysis
+voting_results_2023$yearID <- as.integer(voting_results_2023$yearID)
+voting_results_2023$ballots <- as.integer(voting_results_2023$ballots)
+voting_results_2023$needed <- as.integer(voting_results_2023$needed)
+voting_results_2023$votes <- as.integer(voting_results_2023$votes)
+voting_results_2023$inducted <- ifelse(voting_results_2023$inducted == "Y", "Y", "N")
+
+# Combine the newly cleaned data with the existing HallOfFame data
+updated_hall_of_fame <- bind_rows(HallOfFame, voting_results_2023)
+
+# Save the enhanced dataset
+save(updated_hall_of_fame, file = "Updated_HallOfFame.rda", compress = "xz")
+
+
+
+
+
+
+
+
+```
+```{r}
+# Visualize the data with ggplot2
+library(ggplot2)
+updated_hall_of_fame %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2023)) +
+  labs(title = "Trends in Hall of Fame Inductions", x = "Year of Induction", y = "Number of Inductees")
+
+
+```
+
+displays the number of inductees into a Hall of Fame over the years, spanning from the earlier 20th century through approximately 2023. The bars are divided by color to indicate whether individuals were inducted (blue) or not inducted (red).
+
+From the chart, we can observe this:
+
+There are notable fluctuations in the number of inductees year over year.
+In some years, there are spikes in the number of inductees, while other years see relatively few or no inductees.
+The red bars (non-inductees) are more prevalent throughout the years, suggesting that in any given year, the number of nominees who do not get inducted surpasses those who do.
+
+```{r}
+# Export the updated Hall of Fame data to a CSV file
+write.csv(updated_hall_of_fame, "Updated_HallOfFame2023.csv", row.names = FALSE)
+
 ```
 
